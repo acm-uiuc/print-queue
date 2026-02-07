@@ -21,7 +21,9 @@ export function AcmLoginButton(
         : {};
       if (authError.errorCode === 'interaction_in_progress' || 
           authError.message?.includes('interaction_in_progress')) {
-        console.log('Handling interaction_in_progress error in button');
+        if (typeof window !== 'undefined') {
+          window.location.assign('/login');
+        }
         return;
       }
       console.error('Login failed', error);

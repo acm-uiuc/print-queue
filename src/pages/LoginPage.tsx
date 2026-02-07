@@ -13,9 +13,12 @@ export function LoginPage() {
   useEffect(() => {
     if (isAuthenticated) {
       const state = location.state as { from?: string } | null;
+      const requestedPath = typeof state?.from === 'string' ? state.from : '';
+      const isSafeInternalPath =
+        requestedPath.startsWith('/') && !requestedPath.startsWith('//');
       const redirectTo =
-        state?.from && state.from !== '/login'
-          ? state.from
+        isSafeInternalPath && requestedPath !== '/login'
+          ? requestedPath
           : '/print';
       navigate(redirectTo, { replace: true });
     }

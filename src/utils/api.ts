@@ -1,6 +1,9 @@
+import { acquireAccessToken } from '@/auth/msalConfig';
 import type { JobStatus } from '@/pages/queueShared';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+const STATUS_POLL_INTERVAL_MS = 3000;
+const TERMINAL_STATUSES: ReadonlySet<JobStatus> = new Set(['Done', 'Failed']);
 
 export type StatsResponse = Record<string, unknown>;
 
@@ -10,30 +13,33 @@ export interface QueueStatusResponse {
   jobId?: string;
 }
 
-async function getAuthHeaders(): Promise<HeadersInit> {
-  // In a real implementation, get the auth token from your auth provider
-  // This is a placeholder - you'll need to integrate with your actual auth system
-  const token = localStorage.getItem('auth_token');
+export interface StatusSubscription {
+  close: () => void;
+}
+
+async function getAuthHeaders(contentType: string = 'application/json'): Promise<HeadersInit> {
+  const token = await acquireAccessToken();
   return {
-    'Authorization': token ? `Bearer ${token}` : '',
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+    'Content-Type': contentType,
   };
 }
 
 export async function uploadDocument(formData: FormData): Promise<{ jobId: string }> {
-  const token = localStorage.getItem('auth_token');
-  
+  const token = await acquireAccessToken();
+
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: 'POST',
     headers: {
-      'Authorization': token ? `Bearer ${token}` : '',
-      // Don't set Content-Type for FormData, browser will set it with boundary
+      Authorization: `Bearer ${token}`,
     },
     body: formData,
   });
 
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({ message: 'Upload failed' }))) as { message?: string };
+    const error = (await response.json().catch(() => ({ message: 'Upload failed' }))) as {
+      message?: string;
+    };
     throw new Error(error.message || 'Failed to upload document');
   }
 
@@ -42,7 +48,7 @@ export async function uploadDocument(formData: FormData): Promise<{ jobId: strin
 
 export async function getStats(): Promise<StatsResponse> {
   const headers = await getAuthHeaders();
-  
+
   const response = await fetch(`${API_BASE_URL}/stats`, {
     method: 'GET',
     headers,
@@ -60,7 +66,7 @@ export async function getStats(): Promise<StatsResponse> {
 
 export async function getJobStatus(jobId: string): Promise<QueueStatusResponse> {
   const headers = await getAuthHeaders();
-  
+
   const response = await fetch(`${API_BASE_URL}/status/${jobId}`, {
     method: 'GET',
     headers,
@@ -78,26 +84,45 @@ export async function getJobStatus(jobId: string): Promise<QueueStatusResponse> 
 
 export function subscribeToJobStatus(
   jobId: string,
-  onMessage: (data: QueueStatusResponse) => void
-): EventSource {
-  const token = localStorage.getItem('auth_token');
-  const url = `${API_BASE_URL}/status/${jobId}/stream?token=${token || ''}`;
-  
-  const eventSource = new EventSource(url);
+  onMessage: (data: QueueStatusResponse) => void,
+  onError?: (error: unknown) => void
+): StatusSubscription {
+  let closed = false;
+  let pollTimer: number | undefined;
+  let lastPayload = '';
 
-  eventSource.onmessage = (event) => {
+  const poll = async () => {
+    if (closed) return;
+
     try {
-      const data = JSON.parse(event.data) as QueueStatusResponse;
-      onMessage(data);
-    } catch (error) {
-      console.error('Failed to parse SSE message:', error);
+      const data = await getJobStatus(jobId);
+      const serialized = JSON.stringify(data);
+      if (serialized !== lastPayload) {
+        lastPayload = serialized;
+        onMessage(data);
+      }
+
+      if (TERMINAL_STATUSES.has(data.status)) {
+        closed = true;
+        return;
+      }
+    } catch (error: unknown) {
+      onError?.(error);
+    }
+
+    if (!closed && typeof window !== 'undefined') {
+      pollTimer = window.setTimeout(poll, STATUS_POLL_INTERVAL_MS);
     }
   };
 
-  eventSource.onerror = (error) => {
-    console.error('SSE error:', error);
-    // Don't close on error, let it reconnect
-  };
+  void poll();
 
-  return eventSource;
+  return {
+    close: () => {
+      closed = true;
+      if (pollTimer !== undefined) {
+        window.clearTimeout(pollTimer);
+      }
+    },
+  };
 }

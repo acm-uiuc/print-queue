@@ -37,7 +37,6 @@ export function QueuePage() {
       return;
     }
 
-    // Initial status fetch
     const fetchStatus = async () => {
       try {
         const status = await getJobStatus(jobId);
@@ -52,18 +51,22 @@ export function QueuePage() {
 
     fetchStatus();
 
-    const eventSource = subscribeToJobStatus(jobId, (data) => {
-      setQueueStatus(data);
-      
-      if (data.status === 'Done' || data.status === 'Failed') {
-        setTimeout(() => {
-          eventSource.close();
-        }, 5000);
+    const statusSubscription = subscribeToJobStatus(
+      jobId,
+      (data) => {
+        setQueueStatus(data);
+      },
+      (subscriptionError: unknown) => {
+        const message =
+          subscriptionError instanceof Error
+            ? subscriptionError.message
+            : 'Failed to refresh queue status';
+        setError(message);
       }
-    });
+    );
 
     return () => {
-      eventSource.close();
+      statusSubscription.close();
     };
   }, [jobId]);
 

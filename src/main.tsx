@@ -2,66 +2,56 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { MantineProvider } from '@mantine/core';
 import { MsalProvider } from '@azure/msal-react';
-import { type Configuration, PublicClientApplication } from '@azure/msal-browser';
 import App from './App';
 import '@ungap/with-resolvers';
 import '@mantine/core/styles.css';
 import { AuthProvider } from '@/auth/AuthContext';
 import { PrintJobsProvider } from '@/print/PrintJobsContext';
-
-const DEFAULT_REDIRECT_URI = 'http://localhost:5173/print';
-
-const clientId = (import.meta.env.VITE_AAD_CLIENT_ID as string | undefined)?.trim() ?? '';
-const tenantId = (import.meta.env.VITE_AAD_TENANT_ID as string | undefined)?.trim() ?? '';
-const explicitAuthority = (import.meta.env.VITE_AAD_AUTHORITY as string | undefined)?.trim();
-
-const resolvedAuthority =
-  explicitAuthority && explicitAuthority.length > 0
-    ? explicitAuthority.trim()
-    : tenantId
-      ? `https://login.microsoftonline.com/${tenantId}`
-      : 'https://login.microsoftonline.com/common';
-
-const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-const defaultRedirectUri = appOrigin ? `${appOrigin}/` : '/';
-const defaultLogoutRedirectUri = appOrigin ? `${appOrigin}/login` : '/login';
-
-if (!clientId) {
-  console.warn('VITE_AAD_CLIENT_ID is not defined. Set it in your .env file.');
-}
-
-if (!tenantId && !explicitAuthority) {
-  console.warn('VITE_AAD_TENANT_ID is not defined. Falling back to the "common" authority.');
-}
-
-const msalConfiguration: Configuration = {
-  auth: {
-    clientId: clientId ?? '',
-    authority: resolvedAuthority,
-    redirectUri:
-      (import.meta.env.VITE_AAD_REDIRECT_URI as string | undefined)?.trim() ??
-      (import.meta.env.DEV ? DEFAULT_REDIRECT_URI : defaultRedirectUri),
-    postLogoutRedirectUri:
-      (import.meta.env.VITE_AAD_POST_LOGOUT_REDIRECT_URI as string | undefined)?.trim() ??
-      defaultLogoutRedirectUri,
-  },
-  cache: {
-    cacheLocation: 'sessionStorage',
-    storeAuthStateInCookie: true,
-  },
-};
-
-const pca = new PublicClientApplication(msalConfiguration);
+import { authConfigError, initializeMsal, pca } from '@/auth/msalConfig';
 
 async function bootstrapMsal() {
   try {
-    await pca.initialize();
+    await initializeMsal();
   } catch (error) {
     console.error('Failed to initialize MSAL', error);
   }
 }
 
 bootstrapMsal().finally(() => {
+  if (authConfigError) {
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <main
+        style={{
+          minHeight: '100vh',
+          display: 'grid',
+          placeItems: 'center',
+          fontFamily: 'system-ui, sans-serif',
+          padding: '2rem',
+          background: '#f6f8fc',
+          color: '#0f172a',
+        }}
+      >
+        <section
+          style={{
+            width: '100%',
+            maxWidth: '760px',
+            background: '#fff',
+            border: '1px solid #dbe2ea',
+            borderRadius: '12px',
+            padding: '1.25rem 1.5rem',
+          }}
+        >
+          <h1 style={{ margin: 0, fontSize: '1.125rem' }}>App configuration error</h1>
+          <p style={{ margin: '0.75rem 0 0' }}>{authConfigError}</p>
+          <p style={{ margin: '0.5rem 0 0' }}>
+            Create or update <code>.env</code>, then restart the dev server.
+          </p>
+        </section>
+      </main>
+    );
+    return;
+  }
+
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <MsalProvider instance={pca}>
       <AuthProvider>
