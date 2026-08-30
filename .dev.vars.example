@@ -1,0 +1,15 @@
+# Public Entra application settings exposed to the browser by the Astro Worker.
+AAD_TENANT_ID=your-tenant-id
+AAD_CLIENT_ID=your-client-id
+# AAD_AUTHORITY=https://login.microsoftonline.com/your-tenant-id
+
+# Register these exact redirect URLs in Entra for local development.
+AAD_REDIRECT_URI=http://localhost:4321/
+AAD_POST_LOGOUT_REDIRECT_URI=http://localhost:4321/login
+AAD_SCOPES=User.Read
+
+# Existing print-service backend.
+API_BASE_URL=http://localhost:3000/api
+
+# Exposes /queue/demo and the Test button when true.
+ENABLE_DEMO_ROUTES=false

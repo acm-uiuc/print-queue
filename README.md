@@ -1,23 +1,45 @@
-# Print Queue
+# ACM@UIUC Print Queue
 
-## Prerequisites
+Astro application deployed as a Cloudflare Worker. The browser authenticates
+with Microsoft Entra ID and sends print jobs to the configured print-service
+API.
 
-- Node.js 18+
-- print-queue entra id
+## Local development
 
-1. `.env` should look like this:
+1. Install dependencies:
 
-```env
-VITE_AAD_CLIENT_ID=your-client-id
-VITE_AAD_TENANT_ID=your-tenant-id
-VITE_AAD_REDIRECT_URI=http://localhost:5173/
-VITE_AAD_POST_LOGOUT_REDIRECT_URI=http://localhost:5173/
-VITE_AAD_SCOPES=User.Read
-VITE_API_BASE_URL=http://localhost:3000/api
-```
+   ```bash
+   bun install
+   ```
+
+2. Copy `.dev.vars.example` to `.dev.vars` and fill in the Entra application
+   values. Register the same redirect URLs in Entra.
+
+3. Start Astro in the Cloudflare Workers runtime:
+
+   ```bash
+   bun run dev
+   ```
+
+The app is available at `http://localhost:4321`.
+
+## Verification
+
 ```bash
-npm install
+bun run check
+bun run test
+bun run build
+bunx wrangler deploy --dry-run
 ```
-```bash
-yarn dev
 
+## Deployment
+
+Configure the variables listed in `.dev.vars.example` in the Cloudflare Worker
+environment, then run:
+
+```bash
+bun run deploy
+```
+
+`ENABLE_DEMO_ROUTES` defaults to `false`; set it to `true` only in development
+to expose the simulated queue.

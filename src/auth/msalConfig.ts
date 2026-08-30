@@ -1,103 +1,141 @@
 import {
   InteractionRequiredAuthError,
-  type Configuration,
   PublicClientApplication,
-} from '@azure/msal-browser';
+  type Configuration,
+} from "@azure/msal-browser";
+import type { RuntimeConfig } from "@/runtimeConfig";
 
-const clientId = (import.meta.env.VITE_AAD_CLIENT_ID as string | undefined)?.trim() ?? '';
-const tenantId = (import.meta.env.VITE_AAD_TENANT_ID as string | undefined)?.trim();
-const explicitAuthority = (import.meta.env.VITE_AAD_AUTHORITY as string | undefined)?.trim();
-const authority =
-  explicitAuthority && explicitAuthority.length > 0
-    ? explicitAuthority
-    : tenantId
-      ? `https://login.microsoftonline.com/${tenantId}`
-      : '';
-
-const configErrors: string[] = [];
-if (!clientId) configErrors.push('VITE_AAD_CLIENT_ID');
-if (!authority) configErrors.push('VITE_AAD_TENANT_ID or VITE_AAD_AUTHORITY');
-
-export const authConfigError =
-  configErrors.length > 0
-    ? `Missing required auth config: ${configErrors.join(', ')}. Add these to your .env file.`
-    : null;
-
-// Keep app boot stable even when env is missing; auth functions fail closed via ensureAuthConfigured().
-const safeClientId = clientId || '00000000-0000-0000-0000-000000000000';
-const safeAuthority = authority || 'https://login.microsoftonline.com/organizations';
-
-const appOrigin = typeof window !== 'undefined' ? window.location.origin : '';
-const defaultRedirectUri = appOrigin ? `${appOrigin}/` : '/';
-const defaultLogoutRedirectUri = appOrigin ? `${appOrigin}/login` : '/login';
-
-const scopeEnv = (import.meta.env.VITE_AAD_SCOPES as string | undefined) ?? '';
-const parsedScopes = scopeEnv
-  .split(',')
-  .map((scope) => scope.trim())
-  .filter(Boolean);
-
-export const requestedScopes = parsedScopes.length > 0 ? parsedScopes : ['User.Read'];
-
-export const msalConfiguration: Configuration = {
-  auth: {
-    clientId: safeClientId,
-    authority: safeAuthority,
-    redirectUri:
-      (import.meta.env.VITE_AAD_REDIRECT_URI as string | undefined)?.trim() || defaultRedirectUri,
-    postLogoutRedirectUri:
-      (import.meta.env.VITE_AAD_POST_LOGOUT_REDIRECT_URI as string | undefined)?.trim() ||
-      defaultLogoutRedirectUri,
-  },
-  cache: {
-    cacheLocation: 'sessionStorage',
-    // Cookie-backed interaction state is mainly for legacy browsers and can get stale.
-    storeAuthStateInCookie: false,
-  },
-};
-
-export const pca = new PublicClientApplication(msalConfiguration);
-
-let initializePromise: Promise<void> | null = null;
-
-function ensureAuthConfigured(): void {
-  if (authConfigError) {
-    throw new Error(authConfigError);
-  }
+export interface MsalSetup {
+  authConfigError: string | null;
+  instance: PublicClientApplication;
+  requestedScopes: string[];
+  initialize: () => Promise<void>;
 }
 
-export function initializeMsal(): Promise<void> {
-  if (!initializePromise) {
-    initializePromise = pca.initialize();
+interface CachedSetup extends MsalSetup {
+  key: string;
+  acquireAccessToken: () => Promise<string>;
+}
+
+let activeSetup: CachedSetup | null = null;
+
+function trim(value: string | undefined): string {
+  return value?.trim() ?? "";
+}
+
+function resolveBrowserUrl(value: string, fallbackPath: string): string {
+  const candidate = value || fallbackPath;
+  if (/^https?:\/\//i.test(candidate) || typeof window === "undefined") {
+    return candidate;
   }
-  return initializePromise;
+  return new URL(candidate, window.location.origin).toString();
+}
+
+function parseScopes(value: string): string[] {
+  const scopes = value
+    .split(",")
+    .map((scope) => scope.trim())
+    .filter(Boolean);
+  return scopes.length > 0 ? scopes : ["User.Read"];
+}
+
+export function configureMsal(config: RuntimeConfig): MsalSetup {
+  const key = JSON.stringify({
+    clientId: config.aadClientId,
+    tenantId: config.aadTenantId,
+    authority: config.aadAuthority,
+    redirectUri: config.aadRedirectUri,
+    postLogoutRedirectUri: config.aadPostLogoutRedirectUri,
+    scopes: config.aadScopes,
+  });
+  if (activeSetup?.key === key) {
+    return activeSetup;
+  }
+
+  const clientId = trim(config.aadClientId);
+  const tenantId = trim(config.aadTenantId);
+  const explicitAuthority = trim(config.aadAuthority);
+  const authority =
+    explicitAuthority ||
+    (tenantId ? `https://login.microsoftonline.com/${tenantId}` : "");
+  const configErrors: string[] = [];
+  if (!clientId) configErrors.push("AAD_CLIENT_ID");
+  if (!authority) configErrors.push("AAD_TENANT_ID or AAD_AUTHORITY");
+
+  const authConfigError =
+    configErrors.length > 0
+      ? `Missing required auth config: ${configErrors.join(", ")}.`
+      : null;
+  const requestedScopes = parseScopes(config.aadScopes);
+  const configuration: Configuration = {
+    auth: {
+      clientId: clientId || "00000000-0000-0000-0000-000000000000",
+      authority: authority || "https://login.microsoftonline.com/organizations",
+      redirectUri: resolveBrowserUrl(trim(config.aadRedirectUri), "/"),
+      postLogoutRedirectUri: resolveBrowserUrl(
+        trim(config.aadPostLogoutRedirectUri),
+        "/login",
+      ),
+    },
+    cache: {
+      cacheLocation: "sessionStorage",
+      storeAuthStateInCookie: false,
+    },
+  };
+  const instance = new PublicClientApplication(configuration);
+  let initializePromise: Promise<void> | null = null;
+
+  const initialize = () => {
+    initializePromise ??= instance.initialize().catch((error: unknown) => {
+      initializePromise = null;
+      throw error;
+    });
+    return initializePromise;
+  };
+
+  const acquireAccessToken = async (): Promise<string> => {
+    if (authConfigError) {
+      throw new Error(authConfigError);
+    }
+    await initialize();
+
+    const accounts = instance.getAllAccounts();
+    const account = instance.getActiveAccount() ?? accounts[0] ?? null;
+    if (!account) {
+      throw new Error("Not authenticated. Sign in before making API requests.");
+    }
+    if (!instance.getActiveAccount()) {
+      instance.setActiveAccount(account);
+    }
+
+    try {
+      const response = await instance.acquireTokenSilent({
+        account,
+        scopes: requestedScopes,
+      });
+      return response.accessToken;
+    } catch (error: unknown) {
+      if (error instanceof InteractionRequiredAuthError) {
+        throw new Error("Session expired. Please sign in again.");
+      }
+      throw error;
+    }
+  };
+
+  activeSetup = {
+    key,
+    authConfigError,
+    instance,
+    requestedScopes,
+    initialize,
+    acquireAccessToken,
+  };
+  return activeSetup;
 }
 
 export async function acquireAccessToken(): Promise<string> {
-  ensureAuthConfigured();
-  await initializeMsal();
-
-  const cachedAccounts = pca.getAllAccounts();
-  const account = pca.getActiveAccount() ?? cachedAccounts[0] ?? null;
-
-  if (!account) {
-    throw new Error('Not authenticated. Sign in before making API requests.');
+  if (!activeSetup) {
+    throw new Error("Authentication has not been configured.");
   }
-
-  if (!pca.getActiveAccount()) {
-    pca.setActiveAccount(account);
-  }
-
-  try {
-    const response = await pca.acquireTokenSilent({
-      account,
-      scopes: requestedScopes,
-    });
-    return response.accessToken;
-  } catch (error: unknown) {
-    if (error instanceof InteractionRequiredAuthError) {
-      throw new Error('Session expired. Please sign in again.');
-    }
-    throw error;
-  }
+  return activeSetup.acquireAccessToken();
 }

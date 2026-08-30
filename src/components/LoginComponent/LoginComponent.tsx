@@ -1,72 +1,65 @@
 import {
-  Text,
-  Paper,
-  Divider,
-  Center,
   Alert,
   Anchor,
+  Center,
+  Group,
+  Paper,
+  Text,
   Title,
   type PaperProps,
-} from '@mantine/core';
-import { IconLock } from '@tabler/icons-react';
-import { AcmLoginButton } from './AcmLoginButton';
-import brandImgUrl from '@/assets/banner-blue.png';
+} from "@mantine/core";
+import { IconLock } from "@tabler/icons-react";
+import brandImgUrl from "@/assets/banner-blue.png";
+import { AcmLoginButton } from "./AcmLoginButton";
 
 export function LoginComponent(props: PaperProps) {
   return (
-    <Paper
-      radius="lg"
-      p="2.5rem"
-      withBorder
-      style={{
-        maxWidth: '520px',
-        width: '100%',
-        boxShadow: '0 10px 40px rgba(0, 36, 77, 0.12)',
-      }}
-      {...props}
-    >
-      <Center mb="lg">
+    <Paper radius="md" p="xl" withBorder maw={520} w="100%" {...props}>
+      <Center>
         <img
-          src={brandImgUrl}
+          src={brandImgUrl.src}
           alt="ACM Logo"
-          style={{ height: '4rem', width: 'auto' }}
+          style={{ height: "5em", marginBottom: "1em" }}
         />
       </Center>
-      
-      <Title order={1} ta="center" fw={700} mb="sm" style={{ color: '#1b335c' }}>
-        Welcome to Print Queue
-      </Title>
-      
-      <Text ta="center" size="md" c="dimmed" mb="xl">
-        ACM@UIUC's printing service
-      </Text>
 
-      <Divider label="Student Login" labelPosition="center" my="xl" />
-
-      <AcmLoginButton fullWidth size="lg" mb="xl">
-        Sign in with Illinois NetID
-      </AcmLoginButton>
+      <Center>
+        <Text size="lg" fw={500}>
+          Welcome to the ACM@UIUC Print Queue
+        </Text>
+      </Center>
 
       <Alert
-        title={<Text size="md" fw={600}>Paid ACM@UIUC Members Only</Text>}
-        icon={<IconLock size={20} />}
-        color="acmBlue"
-        variant="light"
-        radius="md"
+        mt="md"
+        title={
+          <Title order={5} style={{ color: "var(--illinois-blue)" }}>
+            Paid ACM@UIUC Members Only
+          </Title>
+        }
+        icon={<IconLock style={{ color: "var(--illinois-blue)" }} />}
+        color="var(--illinois-blue)"
+        style={{ backgroundColor: "rgba(0, 83, 179, 0.1)" }}
       >
-        <Text size="md">
-          Not a paid member?{' '}
-          <Anchor
-            size="md"
-            href="https://www.acm.illinois.edu/membership?utm_source=printqueue"
-            target="_blank"
-            rel="noopener noreferrer"
-            fw={600}
-          >
-            Sign up today!
-          </Anchor>
+        <Text size="sm">
+          Sign in with your Illinois NetID to access the club printing service.
         </Text>
       </Alert>
+
+      <Group grow my="md">
+        <AcmLoginButton radius="xl">Sign in with Illinois NetID</AcmLoginButton>
+      </Group>
+
+      <Text ta="center" size="sm">
+        Not a paid member?{" "}
+        <Anchor
+          href="https://www.acm.illinois.edu/membership?utm_source=printqueue"
+          target="_blank"
+          rel="noopener noreferrer"
+          fw={600}
+        >
+          Sign up today
+        </Anchor>
+      </Text>
     </Paper>
   );
 }

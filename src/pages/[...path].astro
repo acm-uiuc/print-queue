@@ -1,0 +1,66 @@
+---
+import {
+  AAD_AUTHORITY,
+  AAD_CLIENT_ID,
+  AAD_POST_LOGOUT_REDIRECT_URI,
+  AAD_REDIRECT_URI,
+  AAD_SCOPES,
+  AAD_TENANT_ID,
+  API_BASE_URL,
+  ENABLE_DEMO_ROUTES,
+} from 'astro:env/server';
+import ClientApp from '@/ClientApp';
+import type { RuntimeConfig } from '@/runtimeConfig';
+import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
+import '@/index.css';
+
+Astro.response.headers.set('Cache-Control', 'no-store');
+
+const config: RuntimeConfig = {
+  aadClientId: AAD_CLIENT_ID,
+  aadTenantId: AAD_TENANT_ID,
+  aadAuthority: AAD_AUTHORITY,
+  aadRedirectUri: AAD_REDIRECT_URI,
+  aadPostLogoutRedirectUri: AAD_POST_LOGOUT_REDIRECT_URI,
+  aadScopes: AAD_SCOPES,
+  apiBaseUrl: API_BASE_URL,
+  enableDemoRoutes: ENABLE_DEMO_ROUTES,
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="title" content="ACM@UIUC Print Queue" />
+    <meta name="keywords" content="acm,uiuc,printing" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="language" content="English" />
+    <meta name="author" content="ACM@UIUC" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="ACM@UIUC Print Queue" />
+    <meta
+      property="og:image"
+      content="https://static.acm.illinois.edu/banner-blue.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ACM@UIUC Print Queue" />
+    <meta
+      name="twitter:image"
+      content="https://static.acm.illinois.edu/banner-blue.png"
+    />
+    <link rel="icon" href="/square-blue.png" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#1A1B1E" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <title>Print Queue | ACM@UIUC</title>
+  </head>
+  <body>
+    <div id="app">
+      <ClientApp config={config} client:only="react" />
+    </div>
+    <noscript>JavaScript is required to use the ACM@UIUC Print Queue.</noscript>
+  </body>
+</html>

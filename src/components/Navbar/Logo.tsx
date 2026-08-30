@@ -1,47 +1,42 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import brandImgUrl from '@/assets/banner-blue.png';
+import { useContext } from "react";
+import { Link } from "react-router-dom";
+import ColorSchemeContext from "@/ColorSchemeContext";
+import brandImgUrl from "@/assets/banner-blue.png";
+import brandWhiteImgUrl from "@/assets/banner-white.png";
 
 interface LogoBadgeProps {
   size?: string;
   linkTo?: string;
+  showText?: boolean;
 }
 
-const LogoBadge: React.FC<LogoBadgeProps> = ({
-  size = '1em',
-  linkTo = '/',
-}) => (
-  <Link
-    to={linkTo}
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: '0.75rem',
-      textDecoration: 'none',
-      fontSize: size,
-    }}
-  >
-    <img
-      src={brandImgUrl}
-      alt="ACM@UIUC Logo"
-      style={{
-        height: '2.5em',
-        width: 'auto',
-      }}
-    />
-    <span
-      style={{
-        fontWeight: 600,
-        fontSize: '1.25em',
-        color: '#1b335c', 
-        display: 'flex',
-        alignItems: 'center',
-        gap: '0.5rem',
-      }}
-    >
-      <span style={{ color: '#0053B3' }}>Print Queue</span>
-    </span>
-  </Link>
-);
+export default function LogoBadge({
+  size = "1em",
+  linkTo = "/",
+  showText = true,
+}: LogoBadgeProps) {
+  const colorScheme = useContext(ColorSchemeContext);
+  const isDark = colorScheme?.colorScheme === "dark";
 
-export default LogoBadge;
+  return (
+    <b>
+      <Link
+        to={linkTo}
+        style={{
+          fontSize: size,
+          textDecoration: "none",
+          color: isDark ? "#F2FDFF" : "#0053B3",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <img
+          src={isDark ? brandWhiteImgUrl.src : brandImgUrl.src}
+          alt="ACM Logo"
+          style={{ height: "3em", marginRight: "0.5em" }}
+        />
+        {showText ? "Print Queue" : null}
+      </Link>
+    </b>
+  );
+}
