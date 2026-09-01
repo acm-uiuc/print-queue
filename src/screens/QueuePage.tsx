@@ -40,7 +40,7 @@ const STATUS_ICONS: Record<JobStatus, Icon> = {
   "In queue": IconClock,
 };
 
-export function QueuePage() {
+export default function QueuePage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { apiBaseUrl } = useRuntimeConfig();

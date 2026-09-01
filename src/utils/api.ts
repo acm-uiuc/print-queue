@@ -46,7 +46,7 @@ function parseQueueStatus(payload: unknown): QueueStatusResponse {
     payload === null ||
     !("status" in payload) ||
     typeof payload.status !== "string" ||
-    !(payload.status in JOB_STATUSES)
+    !Object.hasOwn(JOB_STATUSES, payload.status)
   ) {
     throw new Error("The print service returned an invalid job status.");
   }
@@ -101,7 +101,7 @@ export async function uploadDocument(
   ) {
     throw new Error("The print service did not return a job ID.");
   }
-  return { jobId: payload.jobId };
+  return { jobId: payload.jobId.trim() };
 }
 
 export async function getJobStatus(
@@ -136,7 +136,7 @@ export function subscribeToJobStatus(
   onError?: (error: unknown) => void,
 ): StatusSubscription {
   let closed = false;
-  let pollTimer: number | undefined;
+  let cancelPoll = () => {};
   let lastPayload = "";
 
   const poll = async () => {
@@ -160,7 +160,8 @@ export function subscribeToJobStatus(
     }
 
     if (!closed) {
-      pollTimer = window.setTimeout(poll, STATUS_POLL_INTERVAL_MS);
+      const timer = setTimeout(poll, STATUS_POLL_INTERVAL_MS);
+      cancelPoll = () => clearTimeout(timer);
     }
   };
 
@@ -169,7 +170,7 @@ export function subscribeToJobStatus(
   return {
     close: () => {
       closed = true;
-      window.clearTimeout(pollTimer);
+      cancelPoll();
     },
   };
 }

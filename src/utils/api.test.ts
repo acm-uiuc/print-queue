@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getJobStatus, subscribeToJobStatus } from "./api";
+import { getJobStatus, subscribeToJobStatus, uploadDocument } from "./api";
 
 vi.mock("@/auth/msalConfig", () => ({
   acquireAccessToken: vi.fn(async () => "access-token"),
@@ -15,6 +15,15 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+describe("uploadDocument", () => {
+  it("normalizes the returned job ID", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ jobId: " job-1 " }));
+    await expect(
+      uploadDocument("https://print.example/api", new FormData()),
+    ).resolves.toEqual({ jobId: "job-1" });
+  });
 });
 
 describe("getJobStatus", () => {
@@ -39,6 +48,13 @@ describe("getJobStatus", () => {
 
   it("rejects malformed status payloads", async () => {
     fetchMock.mockResolvedValueOnce(Response.json({ status: "unknown" }));
+    await expect(
+      getJobStatus("https://print.example/api", "job-1"),
+    ).rejects.toThrow("invalid job status");
+  });
+
+  it("rejects inherited object keys as statuses", async () => {
+    fetchMock.mockResolvedValueOnce(Response.json({ status: "constructor" }));
     await expect(
       getJobStatus("https://print.example/api", "job-1"),
     ).rejects.toThrow("invalid job status");

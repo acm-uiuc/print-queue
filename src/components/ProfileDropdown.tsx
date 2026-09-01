@@ -2,28 +2,19 @@ import { useState } from "react";
 import {
   Avatar,
   Box,
-  Button,
-  Center,
-  Divider,
   Group,
-  Popover,
-  SimpleGrid,
+  Menu,
   Text,
-  ThemeIcon,
   UnstyledButton,
-  rem,
-  useMantineTheme,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChevronDown, IconMail, IconUser } from "@tabler/icons-react";
+import { IconChevronDown, IconLogout, IconUser } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
 import { usePrintJobs } from "@/print/usePrintJobs";
-import classes from "@/components/Navbar/index.module.css";
 
 export function AuthenticatedProfileDropdown() {
   const [opened, setOpened] = useState(false);
-  const theme = useMantineTheme();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { clearJobs } = usePrintJobs();
@@ -31,6 +22,7 @@ export function AuthenticatedProfileDropdown() {
 
   const displayName = user.name || user.email;
   const handleLogout = async () => {
+    setOpened(false);
     clearJobs();
     try {
       await logout();
@@ -45,92 +37,47 @@ export function AuthenticatedProfileDropdown() {
   };
 
   return (
-    <Popover
+    <Menu
       width={300}
-      position="bottom"
-      radius="md"
+      position="bottom-end"
       shadow="md"
-      withinPortal
       opened={opened}
-      onClose={() => setOpened(false)}
-      zIndex={1_000_010}
+      onChange={setOpened}
     >
-      <Popover.Target>
+      <Menu.Target>
         <UnstyledButton
-          className={classes.link}
           aria-label="Open account menu"
           aria-expanded={opened}
-          onClick={() => setOpened((current) => !current)}
+          px="xs"
         >
-          <Center inline>
-            <Box component="span" mr={5}>
-              <Avatar name={displayName} color="initials" />
-            </Box>
-            <IconChevronDown
-              style={{ width: rem(16), height: rem(16) }}
-              color={theme.colors.blue[6]}
-            />
-          </Center>
+          <Group gap="xs" wrap="nowrap">
+            <Avatar name={displayName} color="initials" />
+            <IconChevronDown size={16} />
+          </Group>
         </UnstyledButton>
-      </Popover.Target>
-
-      <Popover.Dropdown
-        style={{ overflow: "hidden" }}
-        aria-label="Authenticated account menu"
-      >
-        <SimpleGrid cols={1} spacing={0}>
-          <Box className={classes.subLink}>
-            <Group wrap="nowrap" align="flex-start">
-              <ThemeIcon size={40} variant="default" radius="md">
-                <IconUser
-                  style={{ width: rem(22), height: rem(22) }}
-                  color={theme.colors.blue[6]}
-                />
-              </ThemeIcon>
-              <div>
-                <Text size="xs" c="dimmed">
-                  Name
-                </Text>
-                <Text size="sm" fw={500}>
-                  {displayName}
-                </Text>
-              </div>
-            </Group>
-          </Box>
-          <Box className={classes.subLink}>
-            <Group wrap="nowrap" align="flex-start">
-              <ThemeIcon size={40} variant="default" radius="md">
-                <IconMail
-                  style={{ width: rem(22), height: rem(22) }}
-                  color={theme.colors.blue[6]}
-                />
-              </ThemeIcon>
-              <div>
-                <Text size="xs" c="dimmed">
-                  Email
-                </Text>
-                <Text size="sm" fw={500}>
-                  {user.email}
-                </Text>
-              </div>
-            </Group>
-          </Box>
-          <Divider my="sm" />
-          <Button
-            mb="sm"
-            fullWidth
-            onClick={() => {
-              setOpened(false);
-              navigate("/profile");
-            }}
-          >
-            Profile
-          </Button>
-          <Button variant="outline" fullWidth onClick={handleLogout}>
-            Log Out
-          </Button>
-        </SimpleGrid>
-      </Popover.Dropdown>
-    </Popover>
+      </Menu.Target>
+      <Menu.Dropdown>
+        <Box px="md" py="xs">
+          <Text fw={500}>{displayName}</Text>
+          <Text size="sm" c="dimmed">
+            {user.email}
+          </Text>
+        </Box>
+        <Menu.Divider />
+        <Menu.Item
+          leftSection={<IconUser size={16} />}
+          onClick={() => navigate("/profile")}
+        >
+          Profile
+        </Menu.Item>
+        <Menu.Item
+          color="red"
+          leftSection={<IconLogout size={16} />}
+          onClick={() => void handleLogout()}
+        >
+          Log Out
+        </Menu.Item>
+      </Menu.Dropdown>
+    </Menu>
   );
 }

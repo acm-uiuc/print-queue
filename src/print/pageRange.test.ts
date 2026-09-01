@@ -25,6 +25,7 @@ describe("validatePageRange", () => {
     ["1-3,3-5", 10, "cannot overlap"],
     ["1,1", 10, "cannot overlap"],
     ["1-", 10, "separated by commas"],
+    ["1 2", 20, "separated by commas"],
   ])("rejects invalid range %s", (value, pages, message) => {
     expect(validatePageRange(value, pages).error).toContain(message);
   });

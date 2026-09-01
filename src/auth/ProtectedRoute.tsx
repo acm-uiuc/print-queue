@@ -1,13 +1,8 @@
 import { Center, Loader } from "@mantine/core";
-import { Navigate, useLocation } from "react-router-dom";
-import type { ReactElement } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./useAuth";
 
-interface ProtectedRouteProps {
-  children: ReactElement;
-}
-
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
@@ -25,5 +20,5 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to={`/login?${query.toString()}`} replace />;
   }
 
-  return children;
+  return <Outlet />;
 }

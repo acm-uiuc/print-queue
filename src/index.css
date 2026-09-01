@@ -3,6 +3,7 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --illinois-blue: #0053b3;
 }
 
 html,
@@ -29,6 +30,10 @@ html[data-mantine-color-scheme="light"] body {
 
 html[data-mantine-color-scheme="dark"] body {
   background-color: #1a1b1e;
+}
+
+html[data-mantine-color-scheme="dark"] {
+  --illinois-blue: #74c0fc;
 }
 
 a {

@@ -8,11 +8,12 @@ import {
   Text,
   Title,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { IconLock, IconLogout } from "@tabler/icons-react";
 import { AcmAppShell } from "@/components/AppShell";
 import { useAuth } from "@/auth/useAuth";
 
-export function UnauthorizedPage() {
+export default function UnauthorizedPage() {
   const { user, logout } = useAuth();
 
   return (
@@ -43,7 +44,18 @@ export function UnauthorizedPage() {
               <Button
                 variant="outline"
                 leftSection={<IconLogout size={16} />}
-                onClick={() => void logout()}
+                onClick={() => {
+                  void logout().catch((error: unknown) => {
+                    notifications.show({
+                      title: "Logout failed",
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : "Please try again.",
+                      color: "red",
+                    });
+                  });
+                }}
               >
                 Sign Out
               </Button>

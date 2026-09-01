@@ -43,7 +43,6 @@ export default defineConfig({
       API_BASE_URL: envField.string({
         context: "server",
         access: "secret",
-        default: "http://localhost:3000/api",
       }),
       ENABLE_DEMO_ROUTES: envField.boolean({
         context: "server",

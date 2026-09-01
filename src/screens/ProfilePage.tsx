@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import {
   Avatar,
   Badge,
@@ -24,6 +24,8 @@ import { useAuth } from "@/auth/useAuth";
 import { AcmAppShell } from "@/components/AppShell";
 import type { PrintJobStatus } from "@/print/PrintJobsContextBase";
 import { usePrintJobs } from "@/print/usePrintJobs";
+import { useRuntimeConfig } from "@/runtimeConfig";
+import { subscribeToJobStatus } from "@/utils/api";
 
 const STATUS_COLORS: Record<PrintJobStatus, string> = {
   Done: "green",
@@ -32,9 +34,21 @@ const STATUS_COLORS: Record<PrintJobStatus, string> = {
   "In queue": "blue",
 };
 
-export function ProfilePage() {
+export default function ProfilePage() {
   const { user } = useAuth();
-  const { jobs } = usePrintJobs();
+  const { jobs, updateJobStatus } = usePrintJobs();
+  const { apiBaseUrl } = useRuntimeConfig();
+  useEffect(() => {
+    const subscriptions = jobs
+      .filter((job) => job.status === "In queue" || job.status === "Printing")
+      .map((job) =>
+        subscribeToJobStatus(apiBaseUrl, job.id, ({ status }) =>
+          updateJobStatus(job.id, status),
+        ),
+      );
+    return () => subscriptions.forEach(({ close }) => close());
+  }, [apiBaseUrl, jobs, updateJobStatus]);
+
   const summary = useMemo(() => {
     const completedJobs = jobs.filter((job) => job.status === "Done");
     const timedJobs = completedJobs.filter((job) => job.durationSec > 0);

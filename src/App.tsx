@@ -3,36 +3,13 @@ import { Center, Loader } from "@mantine/core";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { useRuntimeConfig } from "./runtimeConfig";
-const LoginPage = lazy(() =>
-  import("./screens/LoginPage").then((module) => ({
-    default: module.LoginPage,
-  })),
-);
-const UnauthorizedPage = lazy(() =>
-  import("./screens/UnauthorizedPage").then((module) => ({
-    default: module.UnauthorizedPage,
-  })),
-);
-const PrintPage = lazy(() =>
-  import("./screens/PrintPage").then((module) => ({
-    default: module.PrintPage,
-  })),
-);
-const QueuePage = lazy(() =>
-  import("./screens/QueuePage").then((module) => ({
-    default: module.QueuePage,
-  })),
-);
-const QueueDemoPage = lazy(() =>
-  import("./screens/QueueDemoPage").then((module) => ({
-    default: module.QueueDemoPage,
-  })),
-);
-const ProfilePage = lazy(() =>
-  import("./screens/ProfilePage").then((module) => ({
-    default: module.ProfilePage,
-  })),
-);
+
+const LoginPage = lazy(() => import("./screens/LoginPage"));
+const PrintPage = lazy(() => import("./screens/PrintPage"));
+const ProfilePage = lazy(() => import("./screens/ProfilePage"));
+const QueueDemoPage = lazy(() => import("./screens/QueueDemoPage"));
+const QueuePage = lazy(() => import("./screens/QueuePage"));
+const UnauthorizedPage = lazy(() => import("./screens/UnauthorizedPage"));
 
 function App() {
   const { enableDemoRoutes } = useRuntimeConfig();
@@ -50,40 +27,14 @@ function App() {
         <Route path="/auth/callback" element={<LoginPage />} />
         <Route path="/logout" element={<LoginPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route
-          path="/print"
-          element={
-            <ProtectedRoute>
-              <PrintPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/queue"
-          element={
-            <ProtectedRoute>
-              <QueuePage />
-            </ProtectedRoute>
-          }
-        />
-        {enableDemoRoutes ? (
-          <Route
-            path="/queue/demo"
-            element={
-              <ProtectedRoute>
-                <QueueDemoPage />
-              </ProtectedRoute>
-            }
-          />
-        ) : null}
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/print" element={<PrintPage />} />
+          <Route path="/queue" element={<QueuePage />} />
+          {enableDemoRoutes ? (
+            <Route path="/queue/demo" element={<QueueDemoPage />} />
+          ) : null}
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>

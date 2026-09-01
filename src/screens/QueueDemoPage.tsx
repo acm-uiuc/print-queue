@@ -40,7 +40,7 @@ const STATUS_ICONS: Record<JobStatus, Icon> = {
   "In queue": IconClock,
 };
 
-export function QueueDemoPage() {
+export default function QueueDemoPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<JobStatus>("In queue");
   const [positionIndex, setPositionIndex] = useState(0);

@@ -34,7 +34,7 @@ function isPrintJob(value: unknown): value is PrintJob {
     Number.isFinite(candidate.durationSec) &&
     candidate.durationSec >= 0 &&
     typeof candidate.status === "string" &&
-    candidate.status in PRINT_JOB_STATUSES
+    Object.hasOwn(PRINT_JOB_STATUSES, candidate.status)
   );
 }
 

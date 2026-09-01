@@ -1,16 +1,8 @@
-export interface ValidPageRange {
-  error: null;
+export interface PageRangeValidation {
+  error: string | null;
   normalized: string;
   pageCount: number;
 }
-
-export interface InvalidPageRange {
-  error: string;
-  normalized: "";
-  pageCount: 0;
-}
-
-export type PageRangeValidation = ValidPageRange | InvalidPageRange;
 
 interface PageInterval {
   start: number;
@@ -21,11 +13,16 @@ export function validatePageRange(
   input: string,
   totalPages: number,
 ): PageRangeValidation {
-  const compact = input.replace(/\s+/g, "");
-  if (!compact) {
+  const normalizedInput = input
+    .trim()
+    .replace(/\s*([,-])\s*/g, "$1");
+  if (!normalizedInput) {
     return { error: null, normalized: "", pageCount: totalPages };
   }
-  if (!/^(\d+(-\d+)?)(,\d+(-\d+)?)*$/.test(compact)) {
+  if (
+    /\s/.test(normalizedInput) ||
+    !/^(\d+(-\d+)?)(,\d+(-\d+)?)*$/.test(normalizedInput)
+  ) {
     return {
       error:
         "Use page numbers or ranges separated by commas, such as 1-5,8,11-13.",
@@ -34,7 +31,7 @@ export function validatePageRange(
     };
   }
 
-  const intervals: PageInterval[] = compact.split(",").map((part) => {
+  const intervals: PageInterval[] = normalizedInput.split(",").map((part) => {
     const [startText, endText = startText] = part.split("-");
     return { start: Number(startText), end: Number(endText) };
   });

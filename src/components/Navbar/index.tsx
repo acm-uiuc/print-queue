@@ -1,9 +1,8 @@
-import { Box, Burger, Group } from "@mantine/core";
+import { Burger, Group } from "@mantine/core";
 import { useAuth } from "@/auth/useAuth";
 import { DarkModeSwitch } from "@/components/DarkModeSwitch";
 import { AuthenticatedProfileDropdown } from "@/components/ProfileDropdown";
 import LogoBadge from "./Logo";
-import classes from "./index.module.css";
 
 interface HeaderNavbarProps {
   navOpened: boolean;
@@ -25,37 +24,23 @@ export function HeaderNavbar({
   );
 
   return (
-    <Box>
-      <header className={classes.header}>
-        <Group justify="space-between" align="center" h="100%">
-          <Group justify="flex-start" align="center" h="100%" gap={10}>
-            <LogoBadge linkTo={isAuthenticated ? "/print" : "/login"} />
+    <Group justify="space-between" h="100%" px="md">
+      <LogoBadge linkTo={isAuthenticated ? "/print" : "/login"} />
+      {showSidebar ? (
+        <>
+          <Group gap="sm" visibleFrom="sm">
+            {actions}
           </Group>
-          {showSidebar ? (
-            <>
-              <Group
-                h="100%"
-                justify="flex-end"
-                align="center"
-                gap={10}
-                visibleFrom="sm"
-              >
-                {actions}
-              </Group>
-              <Burger
-                opened={navOpened}
-                onClick={onToggleNav}
-                hiddenFrom="sm"
-                aria-label="Toggle navigation"
-              />
-            </>
-          ) : (
-            <Group h="100%" justify="flex-end" align="center" gap={10}>
-              {actions}
-            </Group>
-          )}
-        </Group>
-      </header>
-    </Box>
+          <Burger
+            opened={navOpened}
+            onClick={onToggleNav}
+            hiddenFrom="sm"
+            aria-label="Toggle navigation"
+          />
+        </>
+      ) : (
+        <Group gap="sm">{actions}</Group>
+      )}
+    </Group>
   );
 }

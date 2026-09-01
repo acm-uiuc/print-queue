@@ -17,6 +17,18 @@ import {
   type AuthUser,
 } from "./AuthContextBase";
 
+function isInteractionInProgress(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const { errorCode, message } = error as {
+    errorCode?: unknown;
+    message?: unknown;
+  };
+  return (
+    errorCode === "interaction_in_progress" ||
+    (typeof message === "string" && message.includes("interaction_in_progress"))
+  );
+}
+
 export function AuthProvider({
   children,
   requestedScopes,
@@ -25,34 +37,18 @@ export function AuthProvider({
   requestedScopes: string[];
 }) {
   const { instance, accounts, inProgress } = useMsal();
-  const [accountState, setAccountState] = useState<{
-    accounts: AccountInfo[];
-    active: AccountInfo | null;
-  }>(() => ({
-    accounts: instance.getAllAccounts(),
-    active: instance.getActiveAccount() ?? null,
-  }));
+  const [activeAccount, setActiveAccount] = useState<AccountInfo | null>(
+    () => instance.getActiveAccount() ?? instance.getAllAccounts()[0] ?? null,
+  );
   const [isBootstrapComplete, setIsBootstrapComplete] = useState(false);
 
   const syncAccounts = useCallback(() => {
-    setAccountState(() => {
-      const existingAccounts = instance.getAllAccounts();
-      const currentActive = instance.getActiveAccount();
-      const nextActive = currentActive ?? existingAccounts[0] ?? null;
-
-      if (
-        nextActive &&
-        (!currentActive ||
-          currentActive.homeAccountId !== nextActive.homeAccountId)
-      ) {
-        instance.setActiveAccount(nextActive);
-      }
-
-      return {
-        accounts: existingAccounts,
-        active: nextActive,
-      };
-    });
+    const current = instance.getActiveAccount();
+    const next = current ?? instance.getAllAccounts()[0] ?? null;
+    if (next && current?.homeAccountId !== next.homeAccountId) {
+      instance.setActiveAccount(next);
+    }
+    setActiveAccount(next);
   }, [instance]);
 
   useEffect(() => {
@@ -128,7 +124,6 @@ export function AuthProvider({
     }
   }, [accounts, isBootstrapComplete, syncAccounts]);
 
-  const activeAccount = accountState.active;
   const isAuthenticated = isBootstrapComplete && Boolean(activeAccount);
 
   const user = useMemo<AuthUser | null>(() => {
@@ -140,16 +135,21 @@ export function AuthProvider({
   }, [activeAccount]);
 
   const login = useCallback(async () => {
-    if (inProgress !== InteractionStatus.None) {
-      return;
+    if (inProgress !== InteractionStatus.None) return;
+
+    const request = { scopes: requestedScopes };
+    try {
+      await instance.loginRedirect(request);
+    } catch (error: unknown) {
+      if (!isInteractionInProgress(error)) throw error;
+      await instance.clearCache();
+      await instance.loginRedirect(request);
     }
-    await instance.loginRedirect({ scopes: requestedScopes });
   }, [inProgress, instance, requestedScopes]);
 
   const logout = useCallback(async () => {
-    const account =
-      instance.getActiveAccount() ?? accountState.active ?? undefined;
-    setAccountState({ accounts: [], active: null });
+    const account = instance.getActiveAccount() ?? activeAccount ?? undefined;
+    setActiveAccount(null);
     try {
       await instance.logoutRedirect({ account });
     } catch (error: unknown) {
@@ -160,15 +160,13 @@ export function AuthProvider({
       }
       throw error;
     }
-  }, [accountState.active, instance]);
+  }, [activeAccount, instance]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       isAuthenticated,
-      isReady: isBootstrapComplete,
       isLoading: !isBootstrapComplete || inProgress !== InteractionStatus.None,
       user,
-      activeAccount,
       login,
       logout,
     }),
@@ -177,7 +175,6 @@ export function AuthProvider({
       isBootstrapComplete,
       inProgress,
       user,
-      activeAccount,
       login,
       logout,
     ],

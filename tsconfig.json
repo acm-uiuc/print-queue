@@ -4,8 +4,7 @@
     ".astro/types.d.ts",
     "src/**/*",
     "astro.config.ts",
-    "vitest.config.ts",
-    "worker-configuration.d.ts"
+    "vitest.config.ts"
   ],
   "exclude": ["dist"],
   "compilerOptions": {

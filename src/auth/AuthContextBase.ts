@@ -1,5 +1,4 @@
 import { createContext } from "react";
-import type { AccountInfo } from "@azure/msal-browser";
 
 export interface AuthUser {
   email: string;
@@ -8,10 +7,8 @@ export interface AuthUser {
 
 export interface AuthContextValue {
   isAuthenticated: boolean;
-  isReady: boolean;
   isLoading: boolean;
   user: AuthUser | null;
-  activeAccount: AccountInfo | null;
   login: () => Promise<void>;
   logout: () => Promise<void>;
 }
