@@ -1,15 +1,23 @@
 # Public Entra application settings exposed to the browser by the Astro Worker.
 AAD_TENANT_ID=your-tenant-id
 AAD_CLIENT_ID=your-client-id
+# API audience configured on the Entra app registration.
+AAD_API_AUDIENCE=api://your-client-id
 # AAD_AUTHORITY=https://login.microsoftonline.com/your-tenant-id
 
 # Register these exact redirect URLs in Entra for local development.
 AAD_REDIRECT_URI=http://localhost:4321/
 AAD_POST_LOGOUT_REDIRECT_URI=http://localhost:4321/login
-AAD_SCOPES=User.Read
+AAD_SCOPES=api://your-client-id/Print.Submit
 
-# Existing print-service backend.
-API_BASE_URL=http://localhost:3000/api
+# Astro serves the submission API on the same origin.
+DEFAULT_PRINTER_ID=office-main
 
-# Exposes /queue/demo and the Test button when true.
-ENABLE_DEMO_ROUTES=false
+# SHA-256 client-certificate fingerprint to trusted printer ID.
+DEVICE_CERTIFICATES={"REPLACE_WITH_CERT_SHA256":"office-main"}
+
+# Dispatch Worker R2 S3 credentials. Keep real values in .dev.vars/secrets only.
+R2_ACCOUNT_ID=your-account-id
+R2_BUCKET_NAME=acm-print-documents
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key

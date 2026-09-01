@@ -17,7 +17,6 @@ import "@ungap/with-resolvers";
 import App from "@/App";
 import { AuthProvider } from "@/auth/AuthContext";
 import { configureMsal } from "@/auth/msalConfig";
-import { PrintJobsProvider } from "@/print/PrintJobsContext";
 import { RuntimeConfigProvider, type RuntimeConfig } from "@/runtimeConfig";
 
 const colorSchemeManager = localStorageColorSchemeManager({
@@ -110,11 +109,9 @@ export default function ClientApp({ config }: ClientAppProps) {
     content = (
       <MsalProvider instance={setup.instance}>
         <AuthProvider requestedScopes={setup.requestedScopes}>
-          <PrintJobsProvider>
-            <BrowserRouter>
-              <App />
-            </BrowserRouter>
-          </PrintJobsProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
         </AuthProvider>
       </MsalProvider>
     );

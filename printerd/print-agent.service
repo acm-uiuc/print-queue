@@ -1,0 +1,33 @@
+[Unit]
+Description=ACM print delivery agent
+After=network-online.target cups.service
+Wants=network-online.target
+Requires=cups.service
+
+[Service]
+Type=simple
+User=print-agent
+Group=print-agent
+SupplementaryGroups=lp
+ExecStart=/usr/local/bin/print-agent /etc/print-agent/config.toml
+Restart=always
+RestartSec=5
+StateDirectory=print-agent
+ConfigurationDirectory=print-agent
+StateDirectoryMode=0750
+ConfigurationDirectoryMode=0750
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

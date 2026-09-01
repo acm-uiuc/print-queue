@@ -7,8 +7,6 @@ export interface RuntimeConfig {
   aadRedirectUri?: string;
   aadPostLogoutRedirectUri?: string;
   aadScopes: string;
-  apiBaseUrl: string;
-  enableDemoRoutes: boolean;
 }
 
 const RuntimeConfigContext = createContext<RuntimeConfig | undefined>(

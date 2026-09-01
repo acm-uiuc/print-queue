@@ -40,14 +40,20 @@ export default defineConfig({
         access: "secret",
         default: "User.Read",
       }),
-      API_BASE_URL: envField.string({
+      AAD_API_AUDIENCE: envField.string({
         context: "server",
         access: "secret",
+        optional: true,
       }),
-      ENABLE_DEMO_ROUTES: envField.boolean({
+      DEFAULT_PRINTER_ID: envField.string({
         context: "server",
         access: "secret",
-        default: false,
+        default: "office-main",
+      }),
+      DEVICE_CERTIFICATES: envField.string({
+        context: "server",
+        access: "secret",
+        default: "{}",
       }),
     },
   },

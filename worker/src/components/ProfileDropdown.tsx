@@ -11,19 +11,16 @@ import { notifications } from "@mantine/notifications";
 import { IconChevronDown, IconLogout, IconUser } from "@tabler/icons-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/useAuth";
-import { usePrintJobs } from "@/print/usePrintJobs";
 
 export function AuthenticatedProfileDropdown() {
   const [opened, setOpened] = useState(false);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { clearJobs } = usePrintJobs();
   if (!user) return null;
 
   const displayName = user.name || user.email;
   const handleLogout = async () => {
     setOpened(false);
-    clearJobs();
     try {
       await logout();
     } catch (error: unknown) {

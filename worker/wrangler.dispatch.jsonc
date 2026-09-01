@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "acm-print-dispatch",
+  "main": "src/cloud/worker.ts",
+  "compatibility_date": "2026-08-31",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "d1_databases": [
+    {
+      "binding": "PRINT_DB",
+      "database_name": "acm-print-jobs",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "./migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DOCUMENTS",
+      "bucket_name": "acm-print-documents"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PRINTERS",
+        "class_name": "PrinterObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PrinterObject"]
+    }
+  ],
+  "queues": {
+    "consumers": [
+      {
+        "queue": "acm-print-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["17 3 * * *"]
+  }
+}

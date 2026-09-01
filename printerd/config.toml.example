@@ -1,0 +1,5 @@
+endpoint = "wss://print-device.example.com/socket"
+certificate = "/etc/print-agent/device.crt"
+private_key = "/etc/print-agent/device.key"
+cups_uri = "http://127.0.0.1:631/printers/office-main"
+state_dir = "/var/lib/print-agent"

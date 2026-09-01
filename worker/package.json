@@ -5,11 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "dev:dispatch": "wrangler dev --config wrangler.dispatch.jsonc",
+    "generate:protocol": "capnp compile -o ./scripts/capnpc-esm.cjs:src/generated --src-prefix=../schema ../schema/device.capnp ../schema/queue.capnp",
+    "build": "astro build && bun run build:dispatch",
+    "build:dispatch": "wrangler deploy --dry-run --config wrangler.dispatch.jsonc --outdir dist/dispatch",
     "check": "astro check",
     "test": "vitest run",
     "preview": "astro preview",
-    "deploy": "bun run build && wrangler deploy"
+    "deploy": "bun run build && wrangler deploy --config wrangler.dispatch.jsonc && wrangler deploy"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.2.5",
@@ -22,16 +25,22 @@
     "@tabler/icons-react": "^3.44.0",
     "@ungap/with-resolvers": "^0.1.0",
     "astro": "^7.2.7",
+    "aws4fetch": "^1.0.20",
+    "capnp-ts": "^0.9.3",
+    "jose": "^6.2.10",
     "pdf-lib": "^1.17.1",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "react-router-dom": "^7.15.1"
+    "react-router-dom": "^7.15.1",
+    "uuid": "^14.0.2"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.6",
+    "@cloudflare/workers-types": "^5.20260901.1",
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "capnpc-ts": "^0.9.3",
     "typescript": "^5.9.3",
     "vitest": "^4.0.0",
     "wrangler": "^4.125.0"

@@ -18,25 +18,20 @@ import {
 } from "@mantine/core";
 import { IconFileTypePdf, IconPrinter, IconUpload } from "@tabler/icons-react";
 import { PDFDocument } from "pdf-lib";
-import { useNavigate } from "react-router-dom";
 import { AcmAppShell } from "@/components/AppShell";
 import { validatePageRange } from "@/print/pageRange";
-import { usePrintJobs } from "@/print/usePrintJobs";
-import { useRuntimeConfig } from "@/runtimeConfig";
 import { uploadDocument } from "@/utils/api";
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
 export default function PrintPage() {
-  const navigate = useNavigate();
-  const { addJob } = usePrintJobs();
-  const { apiBaseUrl, enableDemoRoutes } = useRuntimeConfig();
   const selectionVersion = useRef(0);
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [validatingFile, setValidatingFile] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [submittedJobId, setSubmittedJobId] = useState<string | null>(null);
   const [copies, setCopies] = useState(1);
   const [color, setColor] = useState(false);
   const [doubleSided, setDoubleSided] = useState(false);
@@ -142,18 +137,9 @@ export default function PrintPage() {
         formData.append("pageRange", validatedRange.normalized);
       }
 
-      const response = await uploadDocument(apiBaseUrl, formData);
-      addJob({
-        id: response.jobId,
-        submittedAt: new Date().toISOString(),
-        fileName: file.name,
-        pages: validatedRange.pageCount * copies,
-        sizeMb: Number((file.size / 1024 / 1024).toFixed(2)),
-        durationSec: 0,
-        status: "In queue",
-      });
-      const query = new URLSearchParams({ jobId: response.jobId });
-      navigate(`/queue?${query.toString()}`);
+      const response = await uploadDocument(formData);
+      setSubmittedJobId(response.jobId);
+      removeFile();
     } catch (uploadError: unknown) {
       setError(
         uploadError instanceof Error
@@ -165,26 +151,6 @@ export default function PrintPage() {
     }
   };
 
-  const handleTestRun = () => {
-    if (!copiesValid) {
-      setError("Copies must be a whole number from 1 to 10.");
-      return;
-    }
-    setError(null);
-    const submittedAt = new Date();
-    const selectedPages =
-      pageCount > 0 ? validatePageRange(pageRange, pageCount).pageCount : 1;
-    addJob({
-      id: `DEMO-${submittedAt.getTime()}`,
-      submittedAt: submittedAt.toISOString(),
-      fileName: file?.name ?? "Demo Print.pdf",
-      pages: Math.max(1, selectedPages) * copies,
-      sizeMb: file ? Number((file.size / 1024 / 1024).toFixed(2)) : 0.5,
-      durationSec: 5,
-      status: "Done",
-    });
-    navigate("/queue/demo");
-  };
 
   return (
     <AcmAppShell>
@@ -243,6 +209,16 @@ export default function PrintPage() {
               )}
 
               {error ? <Alert color="red">{error}</Alert> : null}
+              {submittedJobId ? (
+                <Alert
+                  color="green"
+                  title="Print job accepted"
+                  withCloseButton
+                  onClose={() => setSubmittedJobId(null)}
+                >
+                  Job {submittedJobId} is queued for delivery to the printer.
+                </Alert>
+              ) : null}
             </Stack>
           </Paper>
 
@@ -337,21 +313,6 @@ export default function PrintPage() {
               >
                 Print
               </Button>
-              {enableDemoRoutes ? (
-                <Button
-                  variant="outline"
-                  onClick={handleTestRun}
-                  disabled={
-                    uploading ||
-                    !copiesValid ||
-                    validatingFile ||
-                    Boolean(pageRangeValidation?.error)
-                  }
-                  fullWidth
-                >
-                  Test
-                </Button>
-              ) : null}
             </Stack>
           </Paper>
         </SimpleGrid>

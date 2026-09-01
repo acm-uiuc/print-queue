@@ -6,8 +6,6 @@ import {
   AAD_REDIRECT_URI,
   AAD_SCOPES,
   AAD_TENANT_ID,
-  API_BASE_URL,
-  ENABLE_DEMO_ROUTES,
 } from 'astro:env/server';
 import ClientApp from '@/ClientApp';
 import type { RuntimeConfig } from '@/runtimeConfig';
@@ -24,8 +22,6 @@ const config: RuntimeConfig = {
   aadRedirectUri: AAD_REDIRECT_URI,
   aadPostLogoutRedirectUri: AAD_POST_LOGOUT_REDIRECT_URI,
   aadScopes: AAD_SCOPES,
-  apiBaseUrl: API_BASE_URL,
-  enableDemoRoutes: ENABLE_DEMO_ROUTES,
 };
 ---
 

@@ -25,8 +25,7 @@ export function AcmAppShell({
   const [opened, { toggle, close }] = useDisclosure(false);
   const mobile = useMediaQuery("(max-width: 47.99375em)");
   const location = useLocation();
-  const printActive =
-    location.pathname === "/print" || location.pathname.startsWith("/queue");
+  const printActive = location.pathname === "/print";
 
   return (
     <MantineAppShell
