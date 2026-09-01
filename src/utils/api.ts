@@ -1,11 +1,17 @@
-import { acquireAccessToken } from '@/auth/msalConfig';
-import type { JobStatus } from '@/pages/queueShared';
+import { acquireAccessToken } from "@/auth/msalConfig";
+import type { JobStatus } from "@/screens/queueShared";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 const STATUS_POLL_INTERVAL_MS = 3000;
-const TERMINAL_STATUSES: ReadonlySet<JobStatus> = new Set(['Done', 'Failed']);
-
-export type StatsResponse = Record<string, unknown>;
+const JOB_STATUSES: Record<JobStatus, true> = {
+  Done: true,
+  Failed: true,
+  Printing: true,
+  "In queue": true,
+};
+const TERMINAL_STATUSES: Partial<Record<JobStatus, true>> = {
+  Done: true,
+  Failed: true,
+};
 
 export interface QueueStatusResponse {
   status: JobStatus;
@@ -17,101 +23,145 @@ export interface StatusSubscription {
   close: () => void;
 }
 
-async function getAuthHeaders(contentType: string = 'application/json'): Promise<HeadersInit> {
-  const token = await acquireAccessToken();
-  return {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': contentType,
-  };
+async function readErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  const payload: unknown = await response.json().catch(() => null);
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "message" in payload &&
+    typeof payload.message === "string" &&
+    payload.message.trim()
+  ) {
+    return payload.message;
+  }
+  return fallback;
 }
 
-export async function uploadDocument(formData: FormData): Promise<{ jobId: string }> {
-  const token = await acquireAccessToken();
+function parseQueueStatus(payload: unknown): QueueStatusResponse {
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    !("status" in payload) ||
+    typeof payload.status !== "string" ||
+    !Object.hasOwn(JOB_STATUSES, payload.status)
+  ) {
+    throw new Error("The print service returned an invalid job status.");
+  }
 
-  const response = await fetch(`${API_BASE_URL}/upload`, {
-    method: 'POST',
+  const response: QueueStatusResponse = {
+    status: payload.status as JobStatus,
+  };
+  if (
+    "position" in payload &&
+    typeof payload.position === "number" &&
+    Number.isInteger(payload.position) &&
+    payload.position >= 0
+  ) {
+    response.position = payload.position;
+  }
+  if ("jobId" in payload && typeof payload.jobId === "string") {
+    response.jobId = payload.jobId;
+  }
+  return response;
+}
+
+export async function uploadDocument(
+  apiBaseUrl: string,
+  formData: FormData,
+): Promise<{ jobId: string }> {
+  const token = await acquireAccessToken();
+  const baseUrl = apiBaseUrl.replace(/\/+$/, "");
+  if (!baseUrl) {
+    throw new Error("The print service API URL is not configured.");
+  }
+
+  const response = await fetch(`${baseUrl}/upload`, {
+    method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
     },
     body: formData,
   });
-
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({ message: 'Upload failed' }))) as {
-      message?: string;
-    };
-    throw new Error(error.message || 'Failed to upload document');
+    throw new Error(
+      await readErrorMessage(response, "Failed to upload document"),
+    );
   }
 
-  return response.json();
+  const payload: unknown = await response.json();
+  if (
+    typeof payload !== "object" ||
+    payload === null ||
+    !("jobId" in payload) ||
+    typeof payload.jobId !== "string" ||
+    !payload.jobId.trim()
+  ) {
+    throw new Error("The print service did not return a job ID.");
+  }
+  return { jobId: payload.jobId.trim() };
 }
 
-export async function getStats(): Promise<StatsResponse> {
-  const headers = await getAuthHeaders();
-
-  const response = await fetch(`${API_BASE_URL}/stats`, {
-    method: 'GET',
-    headers,
-  });
-
-  if (!response.ok) {
-    const error = (await response.json().catch(() => ({ message: 'Failed to fetch stats' }))) as {
-      message?: string;
-    };
-    throw new Error(error.message || 'Failed to fetch stats');
+export async function getJobStatus(
+  apiBaseUrl: string,
+  jobId: string,
+): Promise<QueueStatusResponse> {
+  const token = await acquireAccessToken();
+  const baseUrl = apiBaseUrl.replace(/\/+$/, "");
+  if (!baseUrl) {
+    throw new Error("The print service API URL is not configured.");
   }
 
-  return response.json();
-}
-
-export async function getJobStatus(jobId: string): Promise<QueueStatusResponse> {
-  const headers = await getAuthHeaders();
-
-  const response = await fetch(`${API_BASE_URL}/status/${jobId}`, {
-    method: 'GET',
-    headers,
-  });
-
+  const response = await fetch(
+    `${baseUrl}/status/${encodeURIComponent(jobId)}`,
+    {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({ message: 'Failed to fetch status' }))) as {
-      message?: string;
-    };
-    throw new Error(error.message || 'Failed to fetch status');
+    throw new Error(await readErrorMessage(response, "Failed to fetch status"));
   }
-
-  return response.json();
+  return parseQueueStatus(await response.json());
 }
 
 export function subscribeToJobStatus(
+  apiBaseUrl: string,
   jobId: string,
   onMessage: (data: QueueStatusResponse) => void,
-  onError?: (error: unknown) => void
+  onError?: (error: unknown) => void,
 ): StatusSubscription {
   let closed = false;
-  let pollTimer: number | undefined;
-  let lastPayload = '';
+  let cancelPoll = () => {};
+  let lastPayload = "";
 
   const poll = async () => {
     if (closed) return;
 
     try {
-      const data = await getJobStatus(jobId);
+      const data = await getJobStatus(apiBaseUrl, jobId);
+      if (closed) return;
+
       const serialized = JSON.stringify(data);
       if (serialized !== lastPayload) {
         lastPayload = serialized;
         onMessage(data);
       }
-
-      if (TERMINAL_STATUSES.has(data.status)) {
+      if (TERMINAL_STATUSES[data.status]) {
         closed = true;
         return;
       }
     } catch (error: unknown) {
-      onError?.(error);
+      if (!closed) onError?.(error);
     }
 
-    if (!closed && typeof window !== 'undefined') {
-      pollTimer = window.setTimeout(poll, STATUS_POLL_INTERVAL_MS);
+    if (!closed) {
+      const timer = setTimeout(poll, STATUS_POLL_INTERVAL_MS);
+      cancelPoll = () => clearTimeout(timer);
     }
   };
 
@@ -120,9 +170,7 @@ export function subscribeToJobStatus(
   return {
     close: () => {
       closed = true;
-      if (pollTimer !== undefined) {
-        window.clearTimeout(pollTimer);
-      }
+      cancelPoll();
     },
   };
 }
