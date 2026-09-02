@@ -4,17 +4,18 @@
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "keep_vars": true,
+  "account_id": "b17b3669e6fa6f853f6bb063082e95a8",
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1,
   },
   "d1_databases": [
     {
-      "binding": "PRINT_DB",
+      "binding": "acm_print_jobs",
       "database_name": "acm-print-jobs",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a52c97bd-fd98-4d98-94b0-c2621d043d1e",
       "migrations_dir": "./migrations",
-    },
+    }
   ],
   "r2_buckets": [
     {
